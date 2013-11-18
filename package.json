@@ -1,0 +1,42 @@
+{
+  "name": "restive",
+  "description": "REST client schema DSL",
+  "keywords": [
+    "REST",
+    "DSL"
+  ],
+  "author": "William K Farrell",
+  "version": "0.0.1",
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "directories": {
+    "src": "./src",
+    "lib": "./lib",
+    "bin": "./bin"
+  },
+  "main": "./lib/restive",
+  "bin": {
+    "restive": "./bin/restive"
+  },
+  "scripts": {
+    "test": "mocha --compilers coffee:coffee-script -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/wkf/restive.git"
+  },
+  "devDependencies": {
+    "mocha": "~1.14.0",
+    "chai": "~1.8.1"
+  },
+  "dependencies": {
+    "lodash": "~2.2.1",
+    "rest": "~1.0.0",
+    "indx": "0.0.1",
+    "coffee-script": "~1.6.3",
+    "natural": "~0.1.24",
+    "commander": "~2.0.0"
+  }
+}
