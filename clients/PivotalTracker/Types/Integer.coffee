@@ -1,5 +1,5 @@
 module.exports = ->
   class @PivotalTracker.Types.Integer extends @Restive.Types[Number]
-    validate: ->
+    validate: (value) ->
       return no unless super
-      @valid = @value % 1 is 0
+      value % 1 is 0

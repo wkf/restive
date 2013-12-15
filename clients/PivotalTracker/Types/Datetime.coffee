@@ -4,9 +4,9 @@ module.exports = ->
   class @PivotalTracker.Types.Datetime extends @Restive.Type
     type: Date
 
-    validate: ->
+    validate: (value) ->
       return no unless super
-      @valid = !_.isNaN(@value.getTime())
+      !_.isNaN(@parse(value).getTime())
 
     serialize: (v) ->
       v.toISOString()

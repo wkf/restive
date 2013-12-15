@@ -37,11 +37,8 @@ module.exports = ->
 
     require('./Type').call(@)
     require('./Types').call(@)
-
     require('./Resource').call(@)
-
-    require('./Endpoints').call(@)
-
+    require('./Collection').call(@)
     require('./Client').call(@)
 
     @Restive

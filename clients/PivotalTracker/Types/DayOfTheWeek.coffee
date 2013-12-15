@@ -12,5 +12,5 @@ module.exports = ->
       "Saturday"
     ]
 
-    constructor: (value, constraints) ->
-      super value, _.extend chosenFrom: DAYS_OF_THE_WEEK, constraints
+    constructor: (constraints) ->
+      super _.extend chosenFrom: DAYS_OF_THE_WEEK, constraints

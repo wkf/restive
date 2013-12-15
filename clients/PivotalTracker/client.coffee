@@ -22,12 +22,10 @@ module.exports = ->
       _list: (resource, rest..., env) =>
         if resource is 'projects'
           @client.list('projects').then (projects) ->
-            if env.filter
-              console.log projects.map (p) ->
-                p.get(env.filter)
+            console.log if env.filter
+              projects.get(env.filter)
             else
-              console.log projects.map (p) ->
-                p.serialize()
+              projects.serialize()
 
     require('./Types').call(@)
     require('./Resources').call(@)

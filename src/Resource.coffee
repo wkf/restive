@@ -6,92 +6,118 @@ module.exports = ->
 
   class @Restive.Resource
     @schema: (tags..., builder) ->
-      tags.push '*'
-
-      schema = builder.call(new @::_SchemaDSL)
-
+      @::schemas ||= {}
+      (@::schema ||= new @::Schema).extend (schema = new @::Schema builder)
       _.map tags, (t) =>
-        @::schemas    ||= {}
-        @::schemas[t] ||= {}
+        (@::schemas[t] ||= new @::Schema).extend schema
 
-        _.extend @::schemas[t], schema
+    isResource: true
 
-    constructor: (attributes, constraints) ->
-      @attributes = @_parse(attributes) || {}
-      @validate()
+    validate: (attributes, tags...) ->
+      @_schemaForTags(tags).all attributes, (node, attribute) ->
+        node.validate(attribute)
 
-    get: (name) ->
-      if name
-        @attributes[name].get()
+    parse: (attributes, tags...) ->
+      @_schemaForTags(tags).walk attributes, (node, attribute) ->
+        node.parse(attribute)
+
+    _schemaForTags: (tags) ->
+      if tags?.length
+        schema = new @Schema
+        _.map tags, (t) =>
+          schema.extend @schemas[t]
+        schema
       else
-        @
+        @schema
 
-    validate: (tag) ->
-      @valid = true
-      @_walk tag, @attributes, (node, attribute) =>
-        if attribute?
-          unless attribute.validate()
-            @valid = false
-      @valid
+  class @Restive.Resource::Schema
+    constructor: (builder) ->
+      @root = (new @Builder @_result(builder)).map (node) ->
+        if Types[node.type]
+          new Types[node.type] node.constraints
+        else
+          new Resources[node.type] node.constraints
 
-    serialize: (tag) ->
-      @_walk tag, @attributes, (node, attribute) =>
-        attribute.get() if attribute
+    walk: (attributes, callback) ->
+      (new @Walker @root).walk attributes, callback
 
-    _parse: (attributes, tag) ->
-      @_walk tag, attributes, (node, attribute) =>
-        if attribute?
-          if Types[node.type]
-            new Types[node.type] attribute, node.constraints
-          else if Resources[node.type]
-            new Resources[node.type] attribute, node.constraints
+    all: (attributes, callback) ->
+      (new @Walker @root).reduce attributes, (node, attribute, memo) ->
+        memo and callback(node, attribute)
 
-    _walk: (tag, attributes, callback) ->
-      (new @_SchemaWalker @schemas[tag || '*']).walk attributes, callback
+    extend: (schema) ->
+      _.extend(@root, schema.root)
 
-  class @Restive.Resource::_SchemaWalker
-    constructor: (schema) ->
-      @schema = schema
+    _result: (builder) ->
+      if _.isFunction(builder)
+        builder.call(new @DSL)
+      else
+        builder
 
-    walk: (schema, attributes, callback) ->
-      unless callback
-        [schema, attributes, callback] = [@schema, schema, attributes]
+  class Tree extends EventEmitter
+    constructor: (root) ->
+      @root = root
 
+    map: () ->
+    reduce: () ->
+    merge: () ->
+    walk: () ->
+
+  class Tree::Node
+    isLeaf: ->
+      @
+
+  schema.on 'node:visit', ->
+  schema.on 'node:enter', ->
+  schema.on 'node:leave', ->
+
+  class @Restive.Resource::Schema::Walker
+    constructor: (root) ->
+      @root = root
+
+    _walk: (node, attributes, isLeaf, onLeaf) ->
+      @_visit node, attributes, isLeaf, onLeaf
+
+    _visit: (node, attributes, isLeaf, onLeaf) ->
+      if isLeaf(node)
+        onLeaf(node, attributes)
+      else if _.isArray(node)
+        @_walkArray(node, attributes, isLeaf, onLeaf)
+      else if _.isObject(node)
+        @_walkObject(node, attributes, isLeaf, onLeaf)
+
+    _walkObject: (nodes, attributes, isLeaf, onLeaf) ->
       tree = {}
 
-      for name, node of schema
-        attribute = attributes?[name]
+      for name, node of nodes
+        if (branch = @_visit node, attributes?[name], isLeaf, onLeaf)?
+          tree[name] = branch
 
-        if _.isArray(node)
-          if @_isLeaf(node[0])
-            if _.isArray(attribute)
-              branch = attribute
-                .map (a) ->
-                  callback(node, a)
-                .filter (a) ->
-                  a?
-              tree[name] = branch if branch.length
-          else
-            if _.isArray(attribute)
-              branch = attribute
-                .map (a) =>
-                  @walk(node[0], a, callback)
-                .filter (a) ->
-                  a?
-              tree[name] = branch if branch.length
-        else if _.isObject(node)
-          if @_isLeaf(node)
-              tree[name] = branch if (branch = callback(node, attribute))?
-            else
-              tree[name] = branch if branch = @walk(node, attribute, callback)
-
+      console.log tree
       tree if _.keys(tree).length
 
-    _isLeaf: (node) ->
+    _walkArray: (nodes, attributes, isLeaf, onLeaf) ->
+      branch = if isLeaf(nodes[0])
+        if _.isArray(attribute)
+          attribute.map (a) -> onLeaf(nodes[0], a)
+        else
+          [onLeaf(nodes[0])]
+      else
+        if _.isArray(attributes)
+          attribute.map (a) => @_visit(nodes[0], a, isLeaf, onLeaf)
+        else
+          [@_visit(nodes[0], null, isLeaf, onLeaf)]
+
+      branch if (branch = branch.filter (a) -> a?).length
+
+    isLeaf: (node) ->
+      node?.isType is true or node?.isResource is true
+
+  class @Restive.Resource::Schema::Builder extends @Restive.Resource::Schema::Walker
+    isLeaf: (node) ->
       node.type and _.type(node.type) isnt Object
 
-
-  class @Restive.Resource::_SchemaDSL
+  class @Restive.Resource::Schema::DSL
     _a = (type, constraints) -> {type, constraints}
 
     a: _a
