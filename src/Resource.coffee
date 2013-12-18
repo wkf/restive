@@ -5,11 +5,16 @@ module.exports = ->
   Resources = @Restive.Resources
 
   class @Restive.Resource
-    @schema: (tags..., builder) ->
+    @schema: (tags..., descriptor) ->
+      schema = @::Schema.build(descriptor)
+
+      @::schema  ||= {}
       @::schemas ||= {}
-      (@::schema ||= new @::Schema).extend (schema = new @::Schema builder)
+
+      _.extend @::schema, schema
+
       _.map tags, (t) =>
-        (@::schemas[t] ||= new @::Schema).extend schema
+        _.extend @::schemas[t] || {}, schema
 
     isResource: true
 
@@ -31,12 +36,14 @@ module.exports = ->
         @schema
 
   class @Restive.Resource::Schema
-    constructor: (builder) ->
-      @root = (new @Builder @_result(builder)).map (node) ->
-        if Types[node.type]
-          new Types[node.type] node.constraints
+    @build: (descriptor) ->
+      descriptor = @_result(descriptor)
+
+      (new Graph @_isLeaf).map descriptor, (n) ->
+        if Types[n.type]
+          new Types[n.type] n.constraints
         else
-          new Resources[node.type] node.constraints
+          new Resources[n.type] n.constraints
 
     walk: (attributes, callback) ->
       (new @Walker @root).walk attributes, callback
@@ -48,7 +55,7 @@ module.exports = ->
     extend: (schema) ->
       _.extend(@root, schema.root)
 
-    _result: (builder) ->
+    _result: (descriptor) ->
       if _.isFunction(builder)
         builder.call(new @DSL)
       else
@@ -67,9 +74,9 @@ module.exports = ->
     isLeaf: ->
       @
 
-  schema.on 'node:visit', ->
-  schema.on 'node:enter', ->
-  schema.on 'node:leave', ->
+  # schema.on 'node:visit', ->
+  # schema.on 'node:enter', ->
+  # schema.on 'node:leave', ->
 
   class @Restive.Resource::Schema::Walker
     constructor: (root) ->
