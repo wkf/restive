@@ -2,14 +2,7 @@ _ = require 'lodash'
 
 module.exports = ->
   class @Restive.Type
-    isType: true
-
-    constructor: (constraints) ->
-      @validators  ||= {}
-      @constraints ||= {}
-      _.extend @constraints, constraints
-
-    validate: (value) ->
+    @validate: (value, constraints = {}) ->
       value = @parse(value)
 
       if @type
@@ -17,12 +10,12 @@ module.exports = ->
           return false
 
       _.all @validators, (validator, constraint) =>
-        if @constraints[constraint]?
-          @[validator] value, @constraints[constraint]
+        if constraints[constraint]?
+          @[validator] value, constraints[constraint]
         else
           true
 
-    parse: (value) ->
+    @parse: (value) ->
       if @type
         if _.type(value) is @type
           value

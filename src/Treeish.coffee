@@ -1,53 +1,101 @@
-class Treeish
-  map: ->
+_ = require 'lodash'
 
+Treeish = (Ts...) ->
+  T = (i) ->
+    Ts[i] or _.last(Ts)
 
+  anyLeaves = (ts) ->
+    _.any ts, (t, i) ->
+      T(i).isLeaf(t)
 
-  walk: (ts..., fn) ->
+  keys = (ts) ->
+    _(ts)
+      .map (t, i) ->
+        T(i).keys(t)
+      .flatten()
+      .uniq()
+      .value()
 
-    if _.all ts, @isLeaf
-      fn.call ts..., k
+  branches = (ts, k) ->
+    _.map ts, (t, i) ->
+      T(i).get(t, k)
 
-    if t is 'array'
+  branch = (ts) ->
+    T(0).branch(ts[0])
 
-    max = _.max ts, (t) -> t.length
+  empty = (v) ->
+    T(0).empty(v)
 
-    while i++ < max
-      fn.call (t[i] for t in ts)..., i
+  mapper_ = (ts, fn) ->
+    (b, k) ->
+      T(0).set(b, k, map branches(ts, k)..., fn, k)
 
+  reducer_ = (ts, fn) ->
+    (m, k) ->
+      reduce m, branches(ts, k)..., fn, k
 
-    t is 'object'
+  map = (ts..., fn, k) ->
+    if anyLeaves(ts)
+      fn ts..., k
+    else
+      _.reduce keys(ts), mapper_(ts, fn), branch(ts)
 
+  reduce = (m, ts..., fn, k) ->
+    if anyLeaves(ts)
+      fn m, ts..., k
+    else
+      _.reduce keys(ts), reducer_(ts, fn), m
 
-    _.reduce ts, (ks, t) -> _.extend ks, Object.keys(t)
+  map: (ts..., fn) ->
+    r unless empty(r = map ts..., fn, undefined)
 
+  reduce: (m, ts..., fn) ->
+    reduce(m, ts..., fn, undefined)
 
-    getKey = (ks, k) ->
-      ks[k] = 1; ks
+class Treeish.Tree
+  @isLeaf: (b) ->
+    not _.isObject(b)
 
-    getKeys = (ks, t) ->
-      _.reduce Object.keys(t), addToSet, ks
+  @keys: (b) ->
+    if _.isArray(b)
+      [0...b.length]
+    else if _.isObject(b)
+      Object.keys(b)
 
-    _.reduce ts, getKeys, {}
+  @branch: (b) ->
+    if _.isArray(b)
+      []
+    else if _.isObject(b)
+      {}
 
+  @empty: (b) ->
+    if _.isArray(b)
+      false
+    else if _.isObject(b)
+      !Object.keys(b).length
+    else
+      _.isUndefined(b)
 
+  @get: (b, k) ->
+    b[k]
 
+  @set: (b, k, v) ->
+    return b if _.isArray(b) and not _.isNumber(k)
 
-    u.reduce [{a:1}, {b:2}], ((ks, t) -> u.reduce Object.keys(t), ((ks, k) -> ks[k] = 1; ks), ks), {}
+    b[k] = v unless @empty(v)
+    b
 
+module.export = Treeish
 
-    u.map Object.keys(t), (k) -> ks[k]
+# t0 = a: 1, b: [1,2,3,4]
+# t1 = a: 2, b: {c: 1}
 
-    ((k,a) -> u.map Object.keys(a), ((j) -> k[j] = 1))
+# console.log Treeish(Treeish.Tree, Treeish.Tree).map t0, t1, (l0, l1, k) ->
+#   # console.log l0, l1, k
+#   # l1 if l0
+#   l1
 
+# console.log Treeish(Treeish.Tree, Treeish.Tree).reduce false, t0, t1, (m, l0, l1, k) ->
+#   # console.log m, l0, l1, k
+#   !!(l0 and l1)
 
-    ts[i]
-
-
-
-
-console.log (new Treeish).map {a: [1,2,3]}, (n, k) -> n
-
-# console.log Treeish.map t0, t1, t2, (n0, n1, n2, k) -> n0 + n1 + n2
-
-module.exports = Treeish

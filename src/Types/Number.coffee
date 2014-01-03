@@ -1,11 +1,11 @@
 module.exports = ->
   class @Restive.Types[Number] extends @Restive.Type
-    type: Number
+    @type: Number
 
-    validators:
+    @validators:
       between: '_between'
 
-    _between: (number, range) ->
+    @_between: (number, range) ->
       [head, rest..., tail] = String(range).split(/\.\.|,/)
 
       number >= head and

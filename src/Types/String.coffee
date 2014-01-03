@@ -1,13 +1,13 @@
 module.exports = ->
   class @Restive.Types[String] extends @Restive.Type
-    type: String
+    @type: String
 
-    validators:
+    @validators:
       ofLength:    '_ofLength'
       withPattern: '_withPattern'
       chosenFrom:  '_chosenFrom'
 
-    _ofLength: (string, length) ->
+    @_ofLength: (string, length) ->
       isRange =
         ~String(length).indexOf('..') or
           ~String(length).indexOf(',')
@@ -24,8 +24,8 @@ module.exports = ->
       else
         string.length <= tail
 
-    _withPattern: (string, pattern) ->
+    @_withPattern: (string, pattern) ->
       pattern.test string
 
-    _chosenFrom: (string, choices) ->
+    @_chosenFrom: (string, choices) ->
       !!~choices.indexOf string
